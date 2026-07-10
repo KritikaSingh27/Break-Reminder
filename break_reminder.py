@@ -10,24 +10,19 @@ import tkinter as tk
 
 os.environ["SDL_RENDER_DRIVER"] = "software"
  
-VIDEO_FILENAME = "Animation-greenbg.mp4"
-n = int(input("Enter Interval Minutes: "))
-INTERVAL_MINUTES = n
+VIDEO_BREAK_START = "Animation-greenbg.mp4"
+VIDEO_BREAK_OVER = "BreakOver-greenbg.mp4"
+
+WORK_INTERVAL_MINUTES = 40 
+BREAK_INTERVAL_MINUTES = 10
+
 POPUP_WIDTH = 220
 POPUP_HEIGHT = 391
 MARGIN_FROM_EDGE = 20
 SLIDE_STEP_PX = 20
 SLIDE_DELAY_S = 0.01
 WINDOW_TITLE = "BreakPopupReminder"
-PLAY_IMMEDIATELY_ON_START = True
- 
-def get_video_path():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(script_dir, VIDEO_FILENAME)
-    if not os.path.isfile(path):
-        print(f"\n[ERROR] Could not find video file at:\n  {path}")
-        sys.exit(1)
-    return path
+PLAY_IMMEDIATELY_ON_START = False
 
 def play_popup(video_path):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Break time! Sliding in reminder...")
@@ -121,20 +116,52 @@ def countdown(minutes):
  
  
 def main():
-    video_path = get_video_path()
+    global WORK_INTERVAL_MINUTES, BREAK_INTERVAL_MINUTES
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    break_start_path = os.path.join(script_dir, VIDEO_BREAK_START)
+    break_over_path = os.path.join(script_dir, VIDEO_BREAK_OVER)
+    
+    for path in (break_start_path, break_over_path):
+        if not os.path.isfile(path):
+            print(f"\n[ERROR] Missing video file at:\n  {path}")
+            sys.exit(1)
+
     print("=" * 50)
-    print(" Break Popup Reminder is running")
-    print(f" Reminder interval: every {INTERVAL_MINUTES} minutes")
-    print(f" Video: {video_path}")
+    print(" Setup Your Custom Pomodoro Timer")
+    print("=" * 50)
+    try:
+        user_work = input(f"Enter work duration in minutes [Default 40]: ").strip()
+        if user_work.isdigit():
+            WORK_INTERVAL_MINUTES = int(user_work)
+            
+        user_break = input(f"Enter break duration in minutes [Default 10]: ").strip()
+        if user_break.isdigit():
+            BREAK_INTERVAL_MINUTES = int(user_break)
+    except (KeyboardInterrupt, SystemExit):
+        print("\nSetup cancelled. Exiting.")
+        sys.exit(0)
+
+    print("=" * 50)
+    print(" Pomodoro Break Loop Is Active!")
+    print(f" Work Duration: {WORK_INTERVAL_MINUTES} minutes")
+    print(f" Break Duration: {BREAK_INTERVAL_MINUTES} minutes")
     print("=" * 50)
  
     try:
-        if PLAY_IMMEDIATELY_ON_START:
-            play_popup(video_path)
- 
         while True:
-            countdown(INTERVAL_MINUTES)
-            play_popup(video_path)
+            # 1. Focus block countdown
+            print(f"\n--- [FOCUS MODE] Starting {WORK_INTERVAL_MINUTES} mins of work ---")
+            countdown(WORK_INTERVAL_MINUTES)
+            
+            # 2. Work timer ends -> Trigger "Take a Break" animation
+            play_popup(break_start_path)
+            
+            # 3. Rest block countdown
+            print(f"\n--- [BREAK MODE] Enjoy your {BREAK_INTERVAL_MINUTES} mins rest ---")
+            countdown(BREAK_INTERVAL_MINUTES)
+            
+            # 4. Break timer ends -> Trigger "Break Over" animation
+            play_popup(break_over_path)
  
     except KeyboardInterrupt:
         print("\n\nBreak Popup Reminder stopped. Bye!")
